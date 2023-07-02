@@ -1,0 +1,85 @@
+# Case Study Questions
+
+#1) Which product has the highest price? Only return a single row.
+select product_id,product_name, price
+from products 
+where price = (select MAX(price) from products);
+
+#2) Which customer has made the most orders?
+with cte as 
+(select o.customer_id, concat(c.first_name,' ',c.last_name) customer_name, count(o.order_id) numoforders
+from orders o
+join customers c using (customer_id)
+group by 1,2)
+select customer_id, customer_name, numoforders
+from cte
+where numoforders = (select max(numoforders) from cte);
+
+#3) What’s the total revenue per product?
+select o.product_id, p.product_name, sum(o.quantity*p.price) revenue
+from order_items o
+join products p using (product_id)
+group by o.product_id, p.product_name;
+
+#4) Find the day with the highest revenue.
+with cte as
+(select o.order_date, sum(oi.quantity*p.price) revenue
+from order_items oi
+join orders o using (order_id)
+join products p using (product_id)
+group by o.order_date)
+select order_date, revenue
+from cte 
+where revenue = (select max(revenue) from cte);
+
+#5) Find the first order (by date) for each customer.
+select c.customer_id, concat(c.first_name,' ',c.last_name) customer_name, min(o.order_date)
+from customers c
+join orders o using (customer_id)
+group by 1,2;
+
+#6) Find the top 3 customers who have ordered the most distinct products
+select o.customer_id, concat(c.first_name,' ',c.last_name) customer_name, count(distinct oi.product_id) as distinct_orders 
+from order_items oi
+join orders o using (order_id)
+join customers c using (customer_id)
+group by o.customer_id
+order by distinct_orders desc
+limit 3;
+
+#7) Which product has been bought the least in terms of quantity?
+with cte as 
+(select oi.product_id, p.product_name, sum(oi.quantity) quantity_bought
+from order_items oi
+join products p using (product_id)
+group by oi.product_id, p.product_name 
+)
+select product_id, product_name , quantity_bought
+from cte 
+where quantity_bought = (select min(quantity_bought) from cte);
+
+#8) What is the median order total?
+
+#9) For each order, determine if it was ‘Expensive’ (total over 300), ‘Affordable’ (total over 100), or ‘Cheap’.
+select o.order_id, sum(oi.quantity*p.price) order_cost,
+case 
+	when sum(oi.quantity*p.price) > 300 then 'Expensive' 
+	when sum(oi.quantity*p.price) > 100 then 'Affordable'  
+	when sum(oi.quantity*p.price) <= 100 then 'Cheap' 
+end as order_type
+from orders o
+join order_items oi using (order_id)
+join products p using (product_id)
+group by o.order_id;
+
+#10) Find customers who have ordered the product with the highest price.
+with cte as 
+(select o.customer_id, p.product_name, concat(c.first_name,' ',c.last_name) customer_name, p.price 
+from order_items oi
+join orders o using (order_id)
+join products p using (product_id)
+join customers c using (customer_id)
+)
+select customer_id, customer_name, product_name, price
+from cte
+where price = (select max(price) from cte)
