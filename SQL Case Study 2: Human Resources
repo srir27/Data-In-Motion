@@ -1,0 +1,38 @@
+-- SQL Challenge Questions
+
+--1. Find the longest ongoing project for each department.
+
+with cte as (select d.name department_name,p.name project_name, datediff(p.end_date,p.start_date) as duration
+from projects p
+join departments d on p.department_id = d.id)
+select department_name, project_name, max(duration) duration
+from cte
+group by 1,2
+
+--2. Find all employees who are not managers.
+select id,name
+from employees
+where job_title not like '%Manager%'
+
+--3. Find all employees who have been hired after the start of a project in their department.
+select e.name, e.hire_date::date
+from employees e
+join departments d on e.department_id = d.id
+join projects p on d.id = p.department_id
+where e.hire_date > p.start_date
+
+--4. Rank employees within each department based on their hire date (earliest hire gets the highest rank).
+select dense_rank() over (partition by e.department_id order by e.hire_date) rnk, 
+e.hire_date, e.name, d.name as department_name 
+from employees e
+join departments d on e.department_id = d.id
+
+--5. Find the duration between the hire date of each employee and the hire date of the next employee hired in the same department.
+with cte as(
+select e.department_id, d.name,e.hire_date, lead(e.hire_date) over (partition by e.department_id order by e.hire_date) as nextdate
+from employees e
+join departments d on e.department_id = d.id
+)
+select name, datediff(nextdate,hire_date) duration(days)
+from cte
+where nextdate is not null
